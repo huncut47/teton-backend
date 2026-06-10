@@ -2,7 +2,23 @@
 
 ## How to run
 
-TODO
+Requires Go 1.25+ (https://go.dev/dl/). No other system dependencies.
+
+```bash
+cd my_solution
+go run .
+```
+
+The first run downloads the Go module dependencies (chi router) automatically. The service listens on `:8080`:
+
+```
+POST /events                              event ingestion
+GET  /devices/{device_id}/health
+GET  /rooms/{room_id}/occupancy?window=1m|5m|1h
+GET  /alarms?since=<unix_ts>
+```
+
+State is currently in-memory only — restart the service between eval runs.
 
 ## Architecture
 
