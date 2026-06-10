@@ -15,7 +15,10 @@ func getDeviceHealth(w http.ResponseWriter, r *http.Request) {
 
 	s := shardFor(deviceID)
 	s.mu.RLock()
-	last := s.deviceLastHeartbeat[deviceID]
+	var last interface{}
+	if iso := s.deviceLastHeartbeatTS[deviceID]; iso != "" {
+		last = iso
+	}
 	count := 0
 	if rb := s.deviceHeartbeats[deviceID]; rb != nil {
 		count = rb.Count(now)
@@ -49,10 +52,14 @@ func getRoomOccupancy(w http.ResponseWriter, r *http.Request) {
 	s := shardFor(roomID)
 	s.mu.RLock()
 	occ := s.occupancy(roomID, now, windowSeconds)
+	inRoom := s.roomPresence[roomID].inRoom
 	s.mu.RUnlock()
 
-	json.NewEncoder(w).Encode(map[string]float64{
-        "occupancy": occ,
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+        "in_room":        inRoom,
+        "occupied_pct":   min(occ, 1.0),
+        "window_seconds": int(windowSeconds),
     })
 }
 
@@ -69,5 +76,9 @@ func getAlarms(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    json.NewEncoder(w).Encode(getAlarmsSince(since))
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(map[string]interface{}{
+        "alarms": getAlarmsSince(since),
+        "since":  since,
+    })
 }

@@ -18,12 +18,13 @@ type ingestedEvent struct {
 }
 
 type shard struct {
-	mu                  sync.RWMutex
-	events              chan ingestedEvent
-	deviceLastHeartbeat map[string]float64
-	deviceHeartbeats    map[string]*RingBuffer
-	roomPresence        map[string]presenceEvent
-	roomPresenceHistory map[string][]presenceEvent
+	mu                    sync.RWMutex
+	events                chan ingestedEvent
+	deviceLastHeartbeat   map[string]float64
+	deviceLastHeartbeatTS map[string]string
+	deviceHeartbeats      map[string]*RingBuffer
+	roomPresence          map[string]presenceEvent
+	roomPresenceHistory   map[string][]presenceEvent
 }
 
 var shards [numShards]*shard
@@ -37,11 +38,12 @@ func shardFor(key string) *shard {
 func startWorkers() {
 	for i := range shards {
 		s := &shard{
-			events:              make(chan ingestedEvent, queueSize),
-			deviceLastHeartbeat: map[string]float64{},
-			deviceHeartbeats:    map[string]*RingBuffer{},
-			roomPresence:        map[string]presenceEvent{},
-			roomPresenceHistory: map[string][]presenceEvent{},
+			events:                make(chan ingestedEvent, queueSize),
+			deviceLastHeartbeat:   map[string]float64{},
+			deviceLastHeartbeatTS: map[string]string{},
+			deviceHeartbeats:      map[string]*RingBuffer{},
+			roomPresence:          map[string]presenceEvent{},
+			roomPresenceHistory:   map[string][]presenceEvent{},
 		}
 		shards[i] = s
 		go s.run()
@@ -69,7 +71,7 @@ func (s *shard) run() {
 		s.mu.Lock()
 		switch ie.ev.Type {
 		case "heartbeat":
-			s.recordHeartbeat(ie.ev.DeviceID, ie.ts)
+			s.recordHeartbeat(ie.ev.DeviceID, ie.ts, ie.ev.TS)
 		case "presence":
 			s.recordPresence(ie.ev.RoomID, ie.ts, ie.ev.InRoom)
 		}

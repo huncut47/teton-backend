@@ -77,5 +77,5 @@ func (s *shard) occupancy(roomID string, now float64, windowSeconds float64) flo
         occupied += now - lastTs
     }
 
-    return occupied / windowSeconds * 100
+    return occupied / windowSeconds
 }

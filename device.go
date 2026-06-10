@@ -32,9 +32,12 @@ func (r *RingBuffer) Count(now float64) int {
     return total
 }
 
-func (s *shard) recordHeartbeat(deviceID string, ts float64) {
+func (s *shard) recordHeartbeat(deviceID string, ts float64, iso string) {
 	now := float64(time.Now().Unix())
-    s.deviceLastHeartbeat[deviceID] = max(ts, s.deviceLastHeartbeat[deviceID])
+    if ts >= s.deviceLastHeartbeat[deviceID] {
+        s.deviceLastHeartbeat[deviceID] = ts
+        s.deviceLastHeartbeatTS[deviceID] = iso
+    }
     if s.deviceHeartbeats[deviceID] == nil {
         s.deviceHeartbeats[deviceID] = &RingBuffer{}
     }

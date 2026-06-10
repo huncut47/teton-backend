@@ -3,9 +3,10 @@ package main
 import "sync"
 
 type Alarm struct {
-	ts       float64
-	roomID   string
-	deviceID string
+	DeviceID string  `json:"device_id"`
+	RoomID   string  `json:"room_id"`
+	TS       string  `json:"ts"`
+	ts       float64 `json:"-"`
 }
 
 type AlarmKey struct {
@@ -23,21 +24,15 @@ var (
 func runAlarmWorker() {
 	for ie := range fallCh {
 		alarmMu.Lock()
-		recordAlarm(ie.ev.DeviceID, ie.ev.RoomID, ie.ts)
+		recordAlarm(ie.ev, ie.ts)
 		alarmMu.Unlock()
 	}
 }
 
-func recordAlarm(deviceID string, roomID string, ts float64) {
-	alarm := Alarm{
-		ts:       ts,
-		roomID:   roomID,
-		deviceID: deviceID,
-	}
-
+func recordAlarm(ev Event, ts float64) {
 	key := AlarmKey{
-		deviceID: alarm.deviceID,
-		Ts:       alarm.ts,
+		deviceID: ev.DeviceID,
+		Ts:       ts,
 	}
 
 	if _, exists := seenAlarms[key]; exists {
@@ -45,14 +40,19 @@ func recordAlarm(deviceID string, roomID string, ts float64) {
 	}
 
 	seenAlarms[key] = struct{}{}
-	alarms = append(alarms, alarm)
+	alarms = append(alarms, Alarm{
+		DeviceID: ev.DeviceID,
+		RoomID:   ev.RoomID,
+		TS:       ev.TS,
+		ts:       ts,
+	})
 }
 
 func getAlarmsSince(ts float64) []Alarm {
 	alarmMu.RLock()
 	defer alarmMu.RUnlock()
 
-	var result []Alarm
+	result := []Alarm{}
 
 	for _, alarm := range alarms {
 		if alarm.ts > ts {
