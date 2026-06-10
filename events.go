@@ -36,7 +36,7 @@ func ingest(ev Event) {
 		log.Printf("invalid ts: %s", ev.TS)
 		return
 	}
-	ts := float64(t.Unix())
+	ts := float64(t.UnixMilli()) / 1000.0
 
 	switch ev.Type {
 	case "heartbeat":
