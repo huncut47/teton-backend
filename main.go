@@ -7,8 +7,17 @@ import (
 )
 
 func main() {
+	initDB()
+	initShards()
+	restoreState()
 	startWorkers()
+
 	r := chi.NewRouter()
-	setupRoutes(r)
+	r.Post("/events", parseEvent)
+	r.Get("/devices/{id}/health", getDeviceHealth)
+	r.Get("/rooms/{id}/occupancy", getRoomOccupancy)
+	r.Get("/alarms", getAlarms)
+	r.Get("/feed", getFeed)
+
 	http.ListenAndServe(":8080", r)
 }
