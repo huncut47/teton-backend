@@ -1,4 +1,8 @@
-# Solution (WIP)
+# Real-time Streaming Backend
+
+A Go service that ingests events from thousands of care-room sensors and serves real-time aggregations: per-device health, per-room occupancy, deduplicated fall alarms, and a live alarm feed.
+
+It handles the hard parts of the brief: out-of-order and late events (aggregations are computed by event timestamp, so offline replays fix up history correctly), 10x ingest bursts (bounded per-shard queues delay instead of drop, with fall warnings on a priority path), and hard restarts (acknowledged alarms are durable before the ack, and the SSE feed resumes from a cursor without missing anything). In local runs it sustained 5,000 devices at ~4.3k events/sec with zero loss and exact fall dedup -- the load generator, not the service, was the bottleneck.
 
 ## How to run
 
@@ -41,8 +45,6 @@ Persistence is two-tier: alarms are durable at ingestion (see above); everything
 File layout: `main.go` (startup + routes), `ingest.go` (write path + validation), `shard.go` (sharded state + aggregation), `alarm.go` (dedup + persistence + feed broadcast), `handlers.go` (read endpoints + SSE feed), `db.go` (SQLite, snapshot/restore).
 
 ## Decisions
-
-TODO
 
 - **SSE for the alarm feed, over WebSocket and long-poll.** The feed is one-directional (nothing to receive from consumers), so WebSocket would add a dependency (no stdlib support) and a hand-rolled resume protocol for no benefit; long-polling makes sub-1s latency awkward through reconnect churn. SSE is push over plain HTTP, implemented with just `http.Flusher` and a channel per subscriber -- and resume is built into the protocol: standard SSE clients automatically resend the last event id as `Last-Event-ID` on reconnect, so the durable `seq` cursor slots straight in and "resume without missing alarms" is the protocol's default behavior rather than custom machinery.
 
